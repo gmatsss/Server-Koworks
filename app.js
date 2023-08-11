@@ -1,32 +1,28 @@
-//morgan logs the request
-//cors to coomunicate to back and fromnt
-//dotenv store sensitive info or connected to git
-//import modules
+// Importing required modules
 const express = require("express");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const cors = require("cors");
-require("dotenv").config();
 const bodyParser = require("body-parser");
-//for secure connection and certificate https
 const https = require("https");
 const fs = require("fs");
-//passport
 const passport = require("passport");
-const passportLocal = require("passport-local");
-//session
 const session = require("express-session");
-//cookies
 const cookieParser = require("cookie-parser");
+require("dotenv").config();
 
-//app commet
+// Importing middleware
+const initializePassport = require("./middleware/passport"); // Adjust the path to your file
+
+// Creating Express app
 const app = express();
 
-//app use json destricturing crud
+// Middleware configuration
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(morgan("dev")); // Logging requests
 
-//db the code
+// Database connection
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -35,68 +31,51 @@ mongoose
   .then(() => console.log("Connected to DB"))
   .catch((err) => console.log("Error connecting to DB"));
 
-//permissions to connect front end
-var corsOptions = {
-  // "http://localhost:8000"
-  origin: "http://localhost:8000", //to the client side connection
-  methods: ["GET", "POST"],
+// CORS configuration
+const corsOptions = {
+  origin: "http://localhost:8000",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
-  preflightContinue: true,
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "X-Requested-With",
-    "Accept",
-  ],
+  optionsSuccessStatus: 204,
 };
-app.use(cors(corsOptions));
+app.use(cors(corsOptions)); // Enabling CORS
 
-//middleware
-app.use(morgan("dev"));
+// Session configuration
 app.use(
   session({
     secret: "secretcode",
     resave: true,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    cookie: {
+      sameSite: "none",
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
   })
 );
-//cookie handlers
-app.use(cookieParser("secretcode"));
+
+// Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
+initializePassport(passport);
 
-// app.post("/login", (req, res, next) => {
-//   passport.authenticate("local", (err, user, info) => {
-//     if (err) throw err;
-//     if (!user) res.send("No user Exist!");
-//     else {
-//       req.logIn(user, (err) => {
-//         if (err) throw err;
-//         res.send("Success Authenticated!");
-//         console.log(req.user);
-//       });
-//     }
-//   })(req, res, next);
-// });
-//routes test
+// Importing and using routes
 const testRoutes = require("./routes/test");
 app.use("/", testRoutes);
-
-//routes test
 const JobSeekerRoutes = require("./routes/JobSeekerRoutes");
 app.use("/JobSeekerRoutes", JobSeekerRoutes);
 
-//cert options
+// HTTPS server options
 const serverOptions = {
   key: fs.readFileSync("server.key"),
   cert: fs.readFileSync("server.crt"),
 };
 
-//passing appjs to server
+// Creating HTTPS server
 const server = https.createServer(serverOptions, app);
 
-//port
+// Port configuration
 const port = process.env.PORT || 8001;
 
-//listener
+// Starting the server
 server.listen(port, () => console.log(`Server is running at ${port}`));

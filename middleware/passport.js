@@ -5,31 +5,41 @@ const bcrypt = require("bcryptjs");
 const localStrategy = require("passport-local").Strategy;
 
 module.exports = function (passport) {
+  // Local strategy for Passport
   passport.use(
-    new localStrategy((email, password, done) => {
-      JobSeeker.findOne({ email: email }).then((user) => {
-        if (!user) return done(null, false);
-        bcrypt.compare(password, user.password, (err, result) => {
-          if (err) throw err;
-          if (result === true) {
-            return done(null, user);
-          } else {
-            return done(null, false);
-          }
-        });
-      });
+    new localStrategy(async function (username, password, done) {
+      try {
+        const user = await JobSeeker.findOne({ email: username });
+        if (!user) {
+          return done(null, false, { message: "No user exists" });
+        }
+
+        const result = await bcrypt.compare(password, user.password);
+        if (result === true) {
+          return done(null, user);
+        } else {
+          return done(null, false, { message: "Incorrect password" });
+        }
+      } catch (err) {
+        console.log(err);
+        return done(err);
+      }
     })
   );
 
-  passport.serializeUser(function (user, cb) {
-    process.nextTick(function () {
-      cb(null, user);
-    });
+  // Serialize user into the session
+  passport.serializeUser(function (user, done) {
+    done(null, user.id);
   });
 
-  passport.deserializeUser(function (user, cb) {
-    process.nextTick(function () {
-      return cb(null, user);
-    });
+  // Deserialize user from the session
+  passport.deserializeUser((id, done) => {
+    JobSeeker.findById(id)
+      .then((user) => {
+        done(null, user);
+      })
+      .catch((err) => {
+        done(err, null);
+      });
   });
 };
