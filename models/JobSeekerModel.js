@@ -1,19 +1,11 @@
 const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-var Jobeeker = new mongoose.Schema({
-  fullname: String,
-  email: String,
-  password: String,
-  job_title: String,
-  summary: String,
-  expected_salary: Number,
-  education: String,
-  experience: String,
-  employment_status: String,
-  working_hours: Number,
-  birthdate: String,
-  contact_number: Number,
-  gender: String,
+const JobSeekerSchema = new Schema({
+  fullname: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String }, // You might want to define specific roles here
 });
 
-module.exports = mongoose.model("jobseeker", Jobeeker);
+module.exports = mongoose.model("JobSeeker", JobSeekerSchema);
