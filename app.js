@@ -18,8 +18,8 @@ const app = express();
 // Step 3: Middleware configuration for logging and parsing requests
 // These middlewares handle logging and parsing incoming requests.
 app.use(morgan("dev")); // Log HTTP requests to the console
-app.use(express.json()); // Parse JSON bodies
-app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
 // Step 4: CORS configuration
 // This enables Cross-Origin Resource Sharing, allowing requests from specified origins.
@@ -35,22 +35,22 @@ app.use(cors(corsOptions));
 // This sets up session management, allowing users to remain logged in across requests.
 app.use(
   session({
-    secret: "secretcode", // Secret key used to sign the session ID cookie
-    resave: true, // Forces session to be saved even when unmodified
-    saveUninitialized: false, // Don't save uninitialized sessions
+    secret: "secretcode",
+    resave: true,
+    saveUninitialized: false,
     cookie: {
-      sameSite: "none", // Cookie SameSite attribute
-      secure: true, // Send cookie over HTTPS only
-      maxAge: 24 * 60 * 60 * 1000, // Cookie expiration time (24 hours)
+      sameSite: "none",
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
 
-// Step 6: Passport initialization
-// This sets up authentication using Passport.
+// Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
-const initializePassport = require("./middleware/passport"); // Import Passport configuration
+
+const initializePassport = require("./middleware/passport");
 initializePassport(passport);
 
 // Step 7: Database connection
@@ -69,6 +69,8 @@ const testRoutes = require("./routes/test");
 app.use("/", testRoutes);
 const JobSeekerRoutes = require("./routes/JobSeekerRoutes");
 app.use("/JobSeekerRoutes", JobSeekerRoutes);
+const User = require("./routes/User");
+app.use("/User", User);
 
 // Step 9: HTTPS server options
 // This sets up the HTTPS server with the SSL certificate and private key.

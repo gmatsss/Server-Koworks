@@ -1,45 +1,44 @@
-const JobSeeker = require("../models/JobSeekerModel");
-
-//hasing password
+const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcryptjs");
-const localStrategy = require("passport-local").Strategy;
+const User = require("../models/User");
 
 module.exports = function (passport) {
-  // Local strategy for Passport
   passport.use(
-    new localStrategy(async function (username, password, done) {
-      try {
-        const user = await JobSeeker.findOne({ email: username });
-        if (!user) {
-          return done(null, false, { message: "No user exists" });
-        }
+    new LocalStrategy(
+      {
+        usernameField: "email",
+        passwordField: "password",
+      },
+      async (email, password, done) => {
+        try {
+          const user = await User.findOne({ email: email });
+          if (!user) {
+            return done(null, false, { message: "No user with that email" });
+          }
 
-        const result = await bcrypt.compare(password, user.password);
-        if (result === true) {
+          const isMatch = await bcrypt.compare(password, user.password);
+          if (!isMatch) {
+            return done(null, false, { message: "Incorrect password" });
+          }
+
           return done(null, user);
-        } else {
-          return done(null, false, { message: "Incorrect password" });
+        } catch (err) {
+          return done(err);
         }
-      } catch (err) {
-        console.log(err);
-        return done(err);
       }
-    })
+    )
   );
 
-  // Serialize user into the session
-  passport.serializeUser(function (user, done) {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
-  // Deserialize user from the session
-  passport.deserializeUser((id, done) => {
-    JobSeeker.findById(id)
-      .then((user) => {
-        done(null, user);
-      })
-      .catch((err) => {
-        done(err, null);
-      });
+  passport.deserializeUser(async (id, done) => {
+    try {
+      const user = await User.findById(id);
+      done(null, user);
+    } catch (err) {
+      done(err, null);
+    }
   });
 };
