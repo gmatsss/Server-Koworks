@@ -5,7 +5,6 @@ const TestScoresSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true,
   },
   disc: {
     dominance_score: {
@@ -25,8 +24,8 @@ const TestScoresSchema = new Schema({
       default: null,
     },
     disc_img: {
-      type: String, // Base64 encoded image
-      default: null,
+      type: Schema.Types.ObjectId,
+      ref: "uploads.files", // Reference to the GridFS collection
     },
   },
   iq: {
@@ -35,8 +34,8 @@ const TestScoresSchema = new Schema({
       default: null,
     },
     iq_img: {
-      type: String, // Base64 encoded image
-      default: null,
+      type: Schema.Types.ObjectId,
+      ref: "uploads.files", // Reference to the GridFS collection
     },
   },
   english: {
@@ -45,8 +44,8 @@ const TestScoresSchema = new Schema({
       default: null,
     },
     english_img: {
-      type: String, // Base64 encoded image
-      default: null,
+      type: Schema.Types.ObjectId,
+      ref: "uploads.files", // Reference to the GridFS collection
     },
   },
 });

@@ -40,8 +40,39 @@ const EmployeeProfileSchema = new Schema({
   },
 
   img: {
-    type: String,
-    default: null, // Optional: set a default value if needed
+    type: Schema.Types.ObjectId,
+    ref: "uploads.files", // Reference to the GridFS collection
+  },
+
+  location: {
+    // Added location field
+    roomFloorUnitOrBuildingName: {
+      type: String,
+    },
+    houseLotAndBlockNumber: {
+      type: String,
+    },
+    streetName: {
+      type: String,
+    },
+    subdivision: {
+      type: String,
+    },
+    barangayOrDistrict: {
+      type: String,
+    },
+    cityOrMunicipality: {
+      type: String,
+    },
+    province: {
+      type: String,
+    },
+    postCode: {
+      type: String,
+    },
+    country: {
+      type: String,
+    },
   },
 });
 

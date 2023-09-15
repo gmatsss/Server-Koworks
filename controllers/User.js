@@ -1,13 +1,12 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
+const TestScores = require("../models/TestScores");
 
 const saltRounds = 10;
 
 exports.register_user = async (req, res) => {
   try {
-    console.log(req.body);
-
     // Check if user with the provided email already exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
@@ -18,13 +17,17 @@ exports.register_user = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+
     const newUser = new User({
       fullname: req.body.fullname,
       email: req.body.email,
       password: hashedPassword,
       role: req.body.role,
+      created: new Date().toISOString(), // Setting the created field to the current date and time
     });
+
     await newUser.save();
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -57,46 +60,100 @@ exports.login_user = (req, res, next) => {
   })(req, res, next);
 };
 
+// exports.get_user = async (req, res) => {
+//   console.log("Endpoint hit:", req.originalUrl); // Log the endpoint hit
+
+//   if (req.isAuthenticated()) {
+//     try {
+//       const user = await User.findById(req.user._id)
+//         .populate("employeeProfile") // Populate the employeeProfile field
+//         .populate("skill");
+
+//       if (!user) {
+//         return res.status(404).json({
+//           isLoggedIn: true,
+//           user: null,
+//           message: "User not found.",
+//         });
+//       }
+
+//       // Fetch the TestScores data for the user
+//       const testScores = await TestScores.findOne({ user: req.user._id });
+
+//       res.status(200).json({
+//         isLoggedIn: true,
+//         user: {
+//           ...user._doc,
+//           employeeProfile: user.employeeProfile,
+//           testScores: user.testScores, // Include the TestScores data
+//         },
+//         message: "User fetched successfully.",
+//       });
+//     } catch (err) {
+//       console.log(err);
+//       res.status(500).json({
+//         isLoggedIn: true,
+//         user: null,
+//         message: "Error fetching user data.",
+//       });
+//     }
+//   } else {
+//     res.status(200).json({
+//       isLoggedIn: false,
+//       user: null,
+//       message: "User not logged in.",
+//     });
+//   }
+// };
+
 exports.get_user = async (req, res) => {
   console.log("Endpoint hit:", req.originalUrl); // Log the endpoint hit
 
-  if (req.isAuthenticated()) {
-    try {
-      const user = await User.findById(req.user._id)
-        .populate("employeeProfile") // Populate the employeeProfile field
-        .populate("testScores")
-        .populate("skill");
-
-      if (!user) {
-        return res.status(404).json({
-          isLoggedIn: true,
-          user: null,
-          message: "User not found.",
-        });
-      }
-
-      res.status(200).json({
-        isLoggedIn: true,
-        user: {
-          ...user._doc,
-          employeeProfile: user.employeeProfile,
-          testScores: "asd",
-        },
-        message: "User fetched successfully.",
-      });
-    } catch (err) {
-      console.log(err);
-      res.status(500).json({
-        isLoggedIn: true,
-        user: null,
-        message: "Error fetching user data.",
-      });
-    }
-  } else {
-    res.status(200).json({
+  if (!req.isAuthenticated()) {
+    return res.status(200).json({
       isLoggedIn: false,
       user: null,
       message: "User not logged in.",
+    });
+  }
+
+  try {
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+    let user;
+
+    if (userRole === "employee") {
+      user = await User.findById(userId)
+        .populate("employeeProfile")
+        .populate("skill")
+        .populate("testScores")
+        .exec();
+    } else if (userRole === "employer") {
+      user = await User.findById(userId).populate("businessProfile").exec();
+    } else {
+      user = await User.findById(userId).exec();
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        isLoggedIn: true,
+        user: null,
+        message: "User not found.",
+      });
+    }
+
+    res.status(200).json({
+      isLoggedIn: true,
+      user: user,
+      message: "User fetched successfully.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      isLoggedIn: true,
+      user: null,
+      message: "Error fetching user data.",
     });
   }
 };

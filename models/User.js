@@ -21,6 +21,23 @@ const UserSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Skill",
   },
+
+  verification: {
+    type: Schema.Types.ObjectId,
+    ref: "Verification",
+  },
+
+  verificationScore: {
+    type: Schema.Types.ObjectId,
+    ref: "VerificationScore",
+  },
+
+  businessProfile: {
+    type: Schema.Types.ObjectId,
+    ref: "BusinessProfile",
+  },
+
+  created: "String",
 });
 
 module.exports = mongoose.model("User", UserSchema);
