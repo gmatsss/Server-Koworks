@@ -1,82 +1,76 @@
-// Step 1: Importing required modules
+// Importing required modules
 const express = require("express");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const cors = require("cors");
-const https = require("https");
-const fs = require("fs");
 const passport = require("passport");
 const session = require("express-session");
-const fileUpload = require("express-fileupload"); // Added this import
+const fileUpload = require("express-fileupload");
+const MongoStore = require("connect-mongo");
+
 require("dotenv").config();
+
+// Database connection utility
 const { connect: connectToDb } = require("./db/db");
 
+// Passport configuration
+const initializePassport = require("./middleware/passport");
+
+// Route handlers
+const testRoutes = require("./routes/test");
+const JobSeekerRoutes = require("./routes/JobSeekerRoutes");
+const EmployerRoutes = require("./routes/EmployerRoutes");
+const UserRoutes = require("./routes/User");
+
+// Initialize Express app
 const app = express();
 app.set("trust proxy", true);
 
-// Step 3: Middleware configuration for logging and parsing requests
+// Middleware for logging and parsing requests
 app.use(morgan("dev"));
-
-// IMPORTANT: Use express-fileupload before body-parser
-app.use(fileUpload());
-
+app.use(fileUpload()); // IMPORTANT: Use express-fileupload before body-parser
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Step 4: CORS configuration
+// CORS configuration
 const corsOptions = {
-  origin: "http://localhost:8000",
-  methods: "GET,POST",
+  origin: ["http://localhost:8000", "http://koworks.customadesign.info"],
+  methods: "GET,POST, DELETE",
   credentials: true,
   optionsSuccessStatus: 204,
 };
+
 app.use(cors(corsOptions));
 
-// Step 5: Session configuration
+// Session configuration
 app.use(
   session({
-    secret: "secretcode",
-    resave: true,
+    secret: process.env.SESSION_SECRET || "default_secret",
+    resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
     cookie: {
-      sameSite: "none",
-      secure: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })
 );
 
-// Passport initialization
+// Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
-
-const initializePassport = require("./middleware/passport");
 initializePassport(passport);
 
-// Step 7: Database connection
+// Database connection
 connectToDb();
 
-// Step 8: Importing and using routes
-const testRoutes = require("./routes/test");
+// Routes configuration
 app.use("/", testRoutes);
-const JobSeekerRoutes = require("./routes/JobSeekerRoutes");
 app.use("/JobSeekerRoutes", JobSeekerRoutes);
-const EmployerRoutes = require("./routes/EmployerRoutes");
 app.use("/EmployerRoutes", EmployerRoutes);
-const User = require("./routes/User");
-app.use("/User", User);
+app.use("/User", UserRoutes);
 
-// Step 9: HTTPS server options
-const serverOptions = {
-  key: fs.readFileSync("server.key"),
-  cert: fs.readFileSync("server.crt"),
-};
-
-// Step 10: Creating HTTPS server
-const server = https.createServer(serverOptions, app);
-
-// Step 11: Port configuration
+// Port configuration and starting the server
 const port = process.env.PORT || 8001;
-
-// Step 12: Starting the server
-server.listen(port, () => console.log(`Server is running at ${port}`));
+app.listen(port, () => console.log(`Server is running at ${port}`));

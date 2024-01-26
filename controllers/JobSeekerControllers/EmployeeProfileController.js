@@ -1,6 +1,7 @@
 const User = require("../../models/User");
 const EmployeeProfile = require("../../models/EmployeeProfile");
 const { MongoClient, GridFSBucket } = require("mongodb");
+const { getGridFS } = require("../../db/db");
 
 // Controller for creating an EmployeeProfile
 exports.createEmployeeProfile = async (req, res) => {
@@ -53,28 +54,19 @@ exports.updateEmployeeProfile = async (req, res) => {
     const uploadedFile = req.files ? req.files.img : null;
 
     if (uploadedFile) {
-      const conn = await MongoClient.connect(process.env.MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-      const db = conn.db();
-
-      // Create a new instance of GridFSBucket
-      const bucket = new GridFSBucket(db, {
-        bucketName: "uploads",
-      });
+      // Use the existing GridFS instance
+      const bucket = getGridFS();
 
       // Check for existing file and delete it
-      const existingFile = await db.collection("uploads.files").findOne({
-        filename: `profile_${req.user._id}`,
-      });
-
+      const existingFile = await bucket
+        .find({ filename: `profile_${userId}` })
+        .next();
       if (existingFile) {
         await bucket.delete(existingFile._id);
       }
 
       // Upload the new file
-      const uploadStream = bucket.openUploadStream(`profile_${req.user._id}`, {
+      const uploadStream = bucket.openUploadStream(`profile_${userId}`, {
         contentType: uploadedFile.mimetype,
       });
       uploadStream.write(uploadedFile.data);

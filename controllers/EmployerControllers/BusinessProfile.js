@@ -1,6 +1,7 @@
 const User = require("../../models/User");
 const BusinessProfile = require("../../models/BusinessProfileSchema");
 const { MongoClient, ObjectId, GridFSBucket } = require("mongodb");
+const { getGridFS } = require("../../db/db");
 
 exports.updateOrCreateProfile = async (req, res) => {
   try {
@@ -50,27 +51,18 @@ exports.updateOrCreateProfile = async (req, res) => {
     if (gender) profile.gender = gender;
 
     if (uploadedFile) {
-      const conn = await MongoClient.connect(process.env.MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-      const db = conn.db();
+      // Use the existing GridFS instance
+      const bucket = getGridFS();
 
-      // Create a new instance of GridFSBucket
-      const bucket = new GridFSBucket(db, {
-        bucketName: "uploads",
-      });
-
-      // Check for existing file and delete it
-      const existingFile = await db.collection("uploads.files").findOne({
-        filename: `profile_${req.user._id}`,
-      });
+      const existingFile = await bucket
+        .find({ filename: `profile_${userId}` })
+        .next();
       if (existingFile) {
         await bucket.delete(existingFile._id);
       }
 
       // Upload the new file
-      const uploadStream = bucket.openUploadStream(`profile_${req.user._id}`, {
+      const uploadStream = bucket.openUploadStream(`profile_${userId}`, {
         contentType: uploadedFile.mimetype,
       });
 
@@ -108,16 +100,9 @@ exports.getUserProfileImage = async (req, res) => {
     }
 
     const userId = req.user._id;
-    const conn = await MongoClient.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const db = conn.db();
 
-    // Initialize GridFS
-    const bucket = new GridFSBucket(db, {
-      bucketName: "uploads",
-    });
+    // Use the existing GridFS instance
+    const bucket = getGridFS();
 
     // Fetch the user's profile image
     const file = await bucket.find({ filename: `profile_${userId}` }).next();
@@ -130,10 +115,9 @@ exports.getUserProfileImage = async (req, res) => {
     res.contentType(file.contentType);
 
     // Stream the image data as the response
-    const downloadStream = bucket.openDownloadStream(new ObjectId(file._id));
+    const downloadStream = bucket.openDownloadStream(file._id);
     downloadStream.pipe(res);
   } catch (error) {
-    console.log(error);
     console.error("Error fetching user profile image:", error);
     res.status(500).send("Internal Server Error");
   }

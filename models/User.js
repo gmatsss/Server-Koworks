@@ -37,6 +37,13 @@ const UserSchema = new Schema({
     ref: "BusinessProfile",
   },
 
+  postedJobs: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "PostJob",
+    },
+  ],
+
   created: "String",
 });
 

@@ -2,6 +2,8 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
 const TestScores = require("../models/TestScores");
+const { MongoClient, GridFSBucket } = require("mongodb");
+const { ObjectId } = require("mongodb");
 
 const saltRounds = 10;
 
@@ -63,52 +65,56 @@ exports.login_user = (req, res, next) => {
 // exports.get_user = async (req, res) => {
 //   console.log("Endpoint hit:", req.originalUrl); // Log the endpoint hit
 
-//   if (req.isAuthenticated()) {
-//     try {
-//       const user = await User.findById(req.user._id)
-//         .populate("employeeProfile") // Populate the employeeProfile field
-//         .populate("skill");
-
-//       if (!user) {
-//         return res.status(404).json({
-//           isLoggedIn: true,
-//           user: null,
-//           message: "User not found.",
-//         });
-//       }
-
-//       // Fetch the TestScores data for the user
-//       const testScores = await TestScores.findOne({ user: req.user._id });
-
-//       res.status(200).json({
-//         isLoggedIn: true,
-//         user: {
-//           ...user._doc,
-//           employeeProfile: user.employeeProfile,
-//           testScores: user.testScores, // Include the TestScores data
-//         },
-//         message: "User fetched successfully.",
-//       });
-//     } catch (err) {
-//       console.log(err);
-//       res.status(500).json({
-//         isLoggedIn: true,
-//         user: null,
-//         message: "Error fetching user data.",
-//       });
-//     }
-//   } else {
-//     res.status(200).json({
+//   if (!req.isAuthenticated()) {
+//     return res.status(200).json({
 //       isLoggedIn: false,
 //       user: null,
 //       message: "User not logged in.",
 //     });
 //   }
+
+//   try {
+//     const userId = req.user._id;
+//     const userRole = req.user.role;
+
+//     let user;
+
+//     if (userRole === "employee") {
+//       user = await User.findById(userId)
+//         .populate("employeeProfile")
+//         .populate("skill")
+//         .populate("testScores")
+//         .exec();
+//     } else if (userRole === "employer") {
+//       user = await User.findById(userId).populate("businessProfile").exec();
+//     } else {
+//       user = await User.findById(userId).exec();
+//     }
+
+//     if (!user) {
+//       return res.status(404).json({
+//         isLoggedIn: true,
+//         user: null,
+//         message: "User not found.",
+//       });
+//     }
+
+//     res.status(200).json({
+//       isLoggedIn: true,
+//       user: user,
+//       message: "User fetched successfully.",
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({
+//       isLoggedIn: true,
+//       user: null,
+//       message: "Error fetching user data.",
+//     });
+//   }
 // };
 
 exports.get_user = async (req, res) => {
-  console.log("Endpoint hit:", req.originalUrl); // Log the endpoint hit
-
   if (!req.isAuthenticated()) {
     return res.status(200).json({
       isLoggedIn: false,
@@ -122,6 +128,36 @@ exports.get_user = async (req, res) => {
     const userRole = req.user.role;
 
     let user;
+    let userProfileImageData = null;
+
+    const conn = await MongoClient.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    const db = conn.db();
+
+    // Initialize GridFS
+    const bucket = new GridFSBucket(db, {
+      bucketName: "uploads",
+    });
+
+    // Fetch the user's profile image
+    const file = await bucket.find({ filename: `profile_${userId}` }).next();
+
+    if (file) {
+      userProfileImageData = await new Promise((resolve, reject) => {
+        const downloadStream = bucket.openDownloadStream(file._id);
+        const chunks = [];
+        downloadStream.on("data", (chunk) => {
+          chunks.push(chunk);
+        });
+        downloadStream.on("end", () => {
+          const imageBuffer = Buffer.concat(chunks);
+          resolve(imageBuffer.toString("base64"));
+        });
+        downloadStream.on("error", reject);
+      });
+    }
 
     if (userRole === "employee") {
       user = await User.findById(userId)
@@ -146,6 +182,7 @@ exports.get_user = async (req, res) => {
     res.status(200).json({
       isLoggedIn: true,
       user: user,
+      profileImageData: userProfileImageData, // Sending image data directly
       message: "User fetched successfully.",
     });
   } catch (err) {
@@ -257,5 +294,30 @@ exports.update_user = async (req, res) => {
       message: "An error occurred while updating the user.",
       success: false,
     });
+  }
+};
+
+exports.get_user_profile_image = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const conn = await MongoClient.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    const db = conn.db();
+    const bucket = new GridFSBucket(db, {
+      bucketName: "uploads",
+    });
+    const file = await bucket.find({ _id: new ObjectId(fileId) }).next();
+
+    if (file) {
+      const downloadStream = bucket.openDownloadStream(file._id);
+      downloadStream.pipe(res);
+    } else {
+      res.status(404).send("Image not found");
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Internal Server Error");
   }
 };
