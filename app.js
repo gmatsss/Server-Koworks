@@ -50,8 +50,8 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
     cookie: {
-      sameSite: "lax", // 'none' is used for cross-site and requires 'secure: true'
-      secure: false, // Set to false since you're running on HTTP
+      sameSite: "None", // Allow cookies to be sent with cross-origin requests
+      secure: false, // Temporarily disable for HTTP (not recommended for production)
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })
