@@ -35,7 +35,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // CORS configuration
 const corsOptions = {
   origin: ["http://localhost:8000", "http://koworks.customadesign.info"],
-  methods: "GET,POST, DELETE",
+  methods: "GET,POST,DELETE",
   credentials: true,
   optionsSuccessStatus: 204,
 };
@@ -72,5 +72,5 @@ app.use("/EmployerRoutes", EmployerRoutes);
 app.use("/User", UserRoutes);
 
 // Port configuration and starting the server
-const port = process.env.PORT || 8001;
+const port = process.env.PORT || 8002;
 app.listen(port, () => console.log(`Server is running at ${port}`));
