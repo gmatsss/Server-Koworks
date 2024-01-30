@@ -43,6 +43,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Session configuration
+// Session configuration
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "default_secret",
@@ -50,8 +51,8 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
     cookie: {
-      sameSite: "none", // Allow cookies on cross-origin requests
-      secure: true, // Set to false for HTTP in development
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" for production, "lax" for other environments
+      secure: process.env.NODE_ENV === "production", // true for production, false otherwise
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })
