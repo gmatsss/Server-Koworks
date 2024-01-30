@@ -74,3 +74,6 @@ app.use("/User", UserRoutes);
 // Port configuration and starting the server
 const port = process.env.PORT || 8002;
 app.listen(port, () => console.log(`Server is running at ${port}`));
+console.log("Mongo URI:", process.env.MONGO_URI);
+console.log("Token Key:", process.env.TOKEN_KEY);
+console.log("Session Secret:", process.env.SESSION_SECRET);
