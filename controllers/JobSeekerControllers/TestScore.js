@@ -1,9 +1,13 @@
 const TestScores = require("../../models/TestScores"); // Update the path accordingly
 const User = require("../../models/User"); // Update the path accordingly+
-const { MongoClient, GridFSBucket } = require("mongodb");
+const { getGridFS } = require("../../db/db");
 
 exports.updateTestScores = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "You are not authorized." });
+    }
+
     const userId = req.user._id;
     let testScores = await TestScores.findOne({ user: userId });
 
@@ -11,68 +15,57 @@ exports.updateTestScores = async (req, res) => {
       testScores = new TestScores({ user: userId });
     }
 
-    const conn = await MongoClient.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const db = conn.db();
+    const bucket = getGridFS();
 
-    // Create a new instance of GridFSBucket
-    const bucket = new GridFSBucket(db, {
-      bucketName: "uploads",
-    });
+    const uploadFile = async (file, fieldName) => {
+      const filename = `${fieldName}_${userId}`;
+      const existingFile = await bucket.find({ filename }).toArray();
 
-    const handleFileUpload = async (fieldName, file) => {
-      const existingFile = await db.collection("uploads.files").findOne({
-        filename: `${fieldName}_${userId}`,
-      });
-
-      if (existingFile) {
-        await bucket.delete(existingFile._id);
+      if (existingFile.length > 0) {
+        await bucket.delete(existingFile[0]._id);
       }
 
-      const uploadStream = bucket.openUploadStream(`${fieldName}_${userId}`, {
-        contentType: file.mimetype,
-      });
-      uploadStream.write(file.data);
-      uploadStream.end();
-
       return new Promise((resolve, reject) => {
+        const uploadStream = bucket.openUploadStream(filename, {
+          contentType: file.mimetype,
+        });
+        uploadStream.write(file.data);
+        uploadStream.end();
+
         uploadStream.on("finish", (file) => {
-          resolve(file._id);
+          console.log(`File uploaded: ${file._id}`);
+          resolve(file._id); // Return the file ID from GridFS
         });
         uploadStream.on("error", reject);
       });
     };
 
-    if (req.files?.disc_img) {
-      testScores.disc.disc_img = await handleFileUpload(
-        "disc",
-        req.files.disc_img
-      );
-    }
-    if (req.files?.iq_img) {
-      testScores.iq.iq_img = await handleFileUpload("iq", req.files.iq_img);
-    }
-    if (req.files?.english_img) {
-      testScores.english.english_img = await handleFileUpload(
-        "english",
-        req.files.english_img
-      );
+    // Check if there are files to process
+    if (req.files && Object.keys(req.files).length > 0) {
+      const fileKeys = Object.keys(req.files);
+      for (let key of fileKeys) {
+        const fileId = await uploadFile(req.files[key], key);
+
+        // Determine the category and field name based on the key
+        if (key === "disc_img") {
+          testScores.disc.disc_img = fileId;
+        } else if (key === "iq_img") {
+          testScores.iq.iq_img = fileId;
+        } else if (key === "english_img") {
+          testScores.english.english_img = fileId;
+        }
+      }
     }
 
-    // Update the fields based on the flattened structure
-    testScores.disc.dominance_score =
-      req.body["disc.dominance_score"] || testScores.disc.dominance_score;
-    testScores.disc.influence_score =
-      req.body["disc.influence_score"] || testScores.disc.influence_score;
-    testScores.disc.steadiness_score =
-      req.body["disc.steadiness_score"] || testScores.disc.steadiness_score;
-    testScores.disc.compliance_score =
-      req.body["disc.compliance_score"] || testScores.disc.compliance_score;
-    testScores.iq.iq_score = req.body["iq.iq_score"] || testScores.iq.iq_score;
-    testScores.english.english_score =
-      req.body["english.english_score"] || testScores.english.english_score;
+    // Update the non-file fields
+    for (let key in req.body) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        const [category, subfield] = key.split(".");
+        if (category && subfield && testScores[category]) {
+          testScores[category][subfield] = req.body[key];
+        }
+      }
+    }
 
     await testScores.save();
 

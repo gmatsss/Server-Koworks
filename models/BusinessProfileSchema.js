@@ -12,6 +12,7 @@ const BusinessProfileSchema = new Schema({
   selectedCountry: { type: String },
   zipCode: { type: String },
   phone: { type: String },
+  city: { type: String },
   selectedTimezone: { type: String },
   selectedCurrency: { type: String },
   website: { type: String },

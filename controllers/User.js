@@ -4,6 +4,7 @@ const passport = require("passport");
 const TestScores = require("../models/TestScores");
 const { MongoClient, GridFSBucket } = require("mongodb");
 const { ObjectId } = require("mongodb");
+const { getGridFS } = require("../db/db");
 
 const saltRounds = 10;
 
@@ -20,13 +21,20 @@ exports.register_user = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
 
-    const newUser = new User({
+    const userFields = {
       fullname: req.body.fullname,
       email: req.body.email,
       password: hashedPassword,
       role: req.body.role,
       created: new Date().toISOString(), // Setting the created field to the current date and time
-    });
+    };
+
+    // Add postedJobs only if the user is an employer
+    if (req.body.role === "employer") {
+      userFields.postedJobs = [];
+    }
+
+    const newUser = new User(userFields);
 
     await newUser.save();
 
@@ -51,68 +59,21 @@ exports.login_user = (req, res, next) => {
     if (!user) {
       return res.status(401).json({ message: info.message || "Login failed" });
     }
-    req.logIn(user, (err) => {
+    req.logIn(user, async (err) => {
       if (err) {
         return next(err);
       }
+
+      // Update last login time
+      user.lastLogin = new Date();
+      await user.save();
+
       return res
         .status(200)
         .json({ message: "Login successful", user: req.user });
     });
   })(req, res, next);
 };
-
-// exports.get_user = async (req, res) => {
-//   console.log("Endpoint hit:", req.originalUrl); // Log the endpoint hit
-
-//   if (!req.isAuthenticated()) {
-//     return res.status(200).json({
-//       isLoggedIn: false,
-//       user: null,
-//       message: "User not logged in.",
-//     });
-//   }
-
-//   try {
-//     const userId = req.user._id;
-//     const userRole = req.user.role;
-
-//     let user;
-
-//     if (userRole === "employee") {
-//       user = await User.findById(userId)
-//         .populate("employeeProfile")
-//         .populate("skill")
-//         .populate("testScores")
-//         .exec();
-//     } else if (userRole === "employer") {
-//       user = await User.findById(userId).populate("businessProfile").exec();
-//     } else {
-//       user = await User.findById(userId).exec();
-//     }
-
-//     if (!user) {
-//       return res.status(404).json({
-//         isLoggedIn: true,
-//         user: null,
-//         message: "User not found.",
-//       });
-//     }
-
-//     res.status(200).json({
-//       isLoggedIn: true,
-//       user: user,
-//       message: "User fetched successfully.",
-//     });
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({
-//       isLoggedIn: true,
-//       user: null,
-//       message: "Error fetching user data.",
-//     });
-//   }
-// };
 
 exports.get_user = async (req, res) => {
   if (!req.isAuthenticated()) {
@@ -130,16 +91,8 @@ exports.get_user = async (req, res) => {
     let user;
     let userProfileImageData = null;
 
-    const conn = await MongoClient.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const db = conn.db();
-
     // Initialize GridFS
-    const bucket = new GridFSBucket(db, {
-      bucketName: "uploads",
-    });
+    const bucket = getGridFS();
 
     // Fetch the user's profile image
     const file = await bucket.find({ filename: `profile_${userId}` }).next();
@@ -167,8 +120,6 @@ exports.get_user = async (req, res) => {
         .exec();
     } else if (userRole === "employer") {
       user = await User.findById(userId).populate("businessProfile").exec();
-    } else {
-      user = await User.findById(userId).exec();
     }
 
     if (!user) {

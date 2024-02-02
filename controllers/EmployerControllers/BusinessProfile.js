@@ -36,6 +36,7 @@ exports.updateOrCreateProfile = async (req, res) => {
       selectedCurrency,
       website,
       gender,
+      city,
     } = req.body;
 
     // Update fields only if they are provided
@@ -49,6 +50,7 @@ exports.updateOrCreateProfile = async (req, res) => {
     if (selectedCurrency) profile.selectedCurrency = selectedCurrency;
     if (website) profile.website = website;
     if (gender) profile.gender = gender;
+    if (city) profile.city = city;
 
     if (uploadedFile) {
       // Use the existing GridFS instance
