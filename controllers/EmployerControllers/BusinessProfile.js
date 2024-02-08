@@ -1,5 +1,5 @@
 const User = require("../../models/User");
-const BusinessProfile = require("../../models/BusinessProfileSchema");
+const BusinessProfileSchema = require("../../models/BusinessProfileSchema");
 const { MongoClient, ObjectId, GridFSBucket } = require("mongodb");
 const { getGridFS } = require("../../db/db");
 
@@ -17,12 +17,12 @@ exports.updateOrCreateProfile = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Check if a BusinessProfile exists for the user
-    let profile = await BusinessProfile.findOne({ user: userId });
+    // Check if a BusinessProfileSchema exists for the user
+    let profile = await BusinessProfileSchema.findOne({ user: userId });
 
     if (!profile) {
       // Create a new profile if it doesn't exist
-      profile = new BusinessProfile({ user: userId });
+      profile = new BusinessProfileSchema({ user: userId });
     }
 
     const {
@@ -53,33 +53,38 @@ exports.updateOrCreateProfile = async (req, res) => {
     if (city) profile.city = city;
 
     if (uploadedFile) {
-      // Use the existing GridFS instance
-      const bucket = getGridFS();
+      const uploadedFile = req.files.img;
+      const bucket = getGridFS(); // Use the shared GridFS instance
 
-      const existingFile = await bucket
+      // Check for existing file
+      const existingFiles = await bucket
         .find({ filename: `profile_${userId}` })
-        .next();
-      if (existingFile) {
-        await bucket.delete(existingFile._id);
+        .toArray();
+      if (existingFiles.length > 0) {
+        // Delete existing file
+        await bucket.delete(existingFiles[0]._id);
       }
 
-      // Upload the new file
+      // Upload new file
       const uploadStream = bucket.openUploadStream(`profile_${userId}`, {
         contentType: uploadedFile.mimetype,
       });
-
       uploadStream.write(uploadedFile.data);
       uploadStream.end();
 
-      uploadStream.on("finish", (file) => {
-        profile.img = file._id; // Store the GridFS file ID in the profile
+      await new Promise((resolve, reject) => {
+        uploadStream.on("finish", (file) => {
+          profile.img = file._id; // Update profile with new image ID
+          resolve();
+        });
+        uploadStream.on("error", reject);
       });
     }
 
     await profile.save();
 
     // Link the profile to the user
-    user.businessProfile = profile._id;
+    user.BusinessProfileSchema = profile._id;
     await user.save();
 
     res.status(200).json({

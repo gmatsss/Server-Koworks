@@ -21,6 +21,12 @@ const {
   getSkill,
 } = require("../controllers/JobSeekerControllers/SkillController");
 
+const {
+  getAllJobs,
+  createPinJob,
+  unpinJob,
+} = require("../controllers/JobSeekerControllers/Joblist");
+
 //testscore
 router.post("/updateTestScores", updateTestScores);
 router.get("/getTestScoresByUserId", getTestScoresByUserId);
@@ -34,5 +40,10 @@ router.get("/profile", getEmployeeProfile);
 router.post("/createSkill", createSkill);
 router.post("/updateSkill", updateSkill);
 router.get("/getSkill", getSkill);
+
+//joblist
+router.get("/getAllJobs", getAllJobs);
+router.post("/createPinJob", createPinJob);
+router.delete("/unpinJob/:jobId", unpinJob);
 
 module.exports = router;

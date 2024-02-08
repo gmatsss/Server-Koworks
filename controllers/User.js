@@ -5,6 +5,10 @@ const TestScores = require("../models/TestScores");
 const { MongoClient, GridFSBucket } = require("mongodb");
 const { ObjectId } = require("mongodb");
 const { getGridFS } = require("../db/db");
+const PostJob = require("../models/PostJob");
+const Skill = require("../models/Skill");
+const EmployeeProfile = require("../models/EmployeeProfile");
+const BusinessProfileSchema = require("../models/BusinessProfileSchema");
 
 const saltRounds = 10;
 
@@ -234,6 +238,7 @@ exports.update_user = async (req, res) => {
     }
 
     await user.save();
+
     res.status(200).json({
       message: "User updated successfully!",
       data: user,
@@ -272,3 +277,65 @@ exports.get_user_profile_image = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
+exports.getUserWithDetails = async (req, res) => {
+  try {
+    const gfs = getGridFS();
+    const users = await User.find().lean();
+
+    for (let user of users) {
+      if (user.role === "employer") {
+        user.postedJobs = await PostJob.find({ user: user._id }).lean();
+        user.businessProfile = await BusinessProfileSchema.findOne({
+          user: user._id,
+        }).lean();
+
+        // Check if imgId exists before attempting to fetch the image
+        if (user.businessProfile && user.businessProfile.img) {
+          try {
+            const imgId = user.businessProfile.img;
+            user.businessProfile.imageData = await streamToBase64(
+              gfs.openDownloadStream(imgId)
+            );
+          } catch (imgError) {
+            console.error(
+              "Error fetching image with ID:",
+              user.businessProfile.img,
+              imgError
+            );
+            // Handle missing image or other errors, e.g., by setting a default image or leaving imageData undefined
+          }
+        }
+      } else if (user.role === "employee") {
+        user.skill = await Skill.findOne({ user: user._id }).lean();
+        user.employeeProfile = await EmployeeProfile.findOne({
+          user: user._id,
+        }).lean();
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users,
+    });
+  } catch (error) {
+    console.error("Error fetching users with details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching users.",
+    });
+  }
+};
+
+async function streamToBase64(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("base64")));
+    stream.on("error", (error) => {
+      console.error("Stream to base64 conversion error:", error);
+      reject(error);
+    });
+  });
+}

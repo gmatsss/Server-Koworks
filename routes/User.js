@@ -8,6 +8,7 @@ const {
   logout_user,
   update_user,
   get_user_profile_image,
+  getUserWithDetails,
 } = require("../controllers/User"); // Updated the controller import
 
 router.post("/register", register_user);
@@ -16,5 +17,6 @@ router.get("/getjobseek", get_user);
 router.post("/logoutjobseek", logout_user);
 router.post("/updateJSeeker", update_user);
 router.get("/getUserProfileImage/:fileId", get_user_profile_image);
+router.get("/getUserWithDetails", getUserWithDetails);
 
 module.exports = router;
