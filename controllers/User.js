@@ -307,8 +307,14 @@ exports.getUserWithDetails = async (req, res) => {
           }
         }
       } else if (user.role === "employee") {
+        // Query for employee's skill and profile
         user.skill = await Skill.findOne({ user: user._id }).lean();
         user.employeeProfile = await EmployeeProfile.findOne({
+          user: user._id,
+        }).lean();
+
+        // Query for employee's test scores
+        user.testScores = await TestScores.findOne({
           user: user._id,
         }).lean();
       }

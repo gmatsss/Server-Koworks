@@ -35,6 +35,13 @@ exports.createPinJob = async (req, res) => {
 
     await pinJob.save();
 
+    // Assuming user model has an array to store pinned jobs
+    if (!user.pinnedJobs) {
+      user.pinnedJobs = []; // Initialize if it does not exist
+    }
+    user.pinnedJobs.push(pinJob._id); // Add the new pinJob ID to the user's pinnedJobs array
+    await user.save(); // Save the user with the updated pinnedJobs array
+
     res.status(201).json({
       success: true,
       message: "Job pinned successfully.",
@@ -62,8 +69,6 @@ exports.unpinJob = async (req, res) => {
       job: jobId,
     });
 
-    console.log(pin);
-
     if (!pin) {
       return res
         .status(404)
@@ -76,6 +81,87 @@ exports.unpinJob = async (req, res) => {
   } catch (error) {
     console.error("Error unpinning job:", error);
     res.status(500).json({ message: "Server error while unpinning the job." });
+  }
+};
+
+exports.getPinJobs = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "You are not authorized." });
+    }
+
+    const userId = req.user._id;
+
+    // Validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Fetch pinned jobs
+    const pinJobs = await Pinjob.find({ user: userId })
+      .populate(
+        "job",
+        "jobTitle jobDescription salaryType salaryLow salaryHigh salaryExact employmentType experience workingHours jobSkills selectedCategory status idProof created"
+      ) // Populate job details from PostJob
+      .exec();
+
+    if (!pinJobs.length) {
+      return res.status(404).json({ message: "No pinned jobs found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: pinJobs.length,
+      data: pinJobs,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "An error occurred while fetching the pinned jobs.",
+    });
+  }
+};
+
+exports.updatePinJobNotes = async (req, res) => {
+  const { pinJobId, notes } = req.body;
+
+  if (!pinJobId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "PinJob ID is required." });
+  }
+
+  try {
+    const pinJob = await Pinjob.findById(pinJobId);
+
+    if (!pinJob) {
+      return res
+        .status(404)
+        .json({ success: false, message: "PinJob not found." });
+    }
+
+    if (req.user._id.toString() !== pinJob.user.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized to update this PinJob.",
+      });
+    }
+
+    pinJob.notes = notes;
+    await pinJob.save();
+
+    res.json({
+      success: true,
+      message: "PinJob notes updated successfully",
+      pinJob,
+    });
+  } catch (error) {
+    console.error("Failed to update PinJob notes:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating PinJob notes",
+    });
   }
 };
 

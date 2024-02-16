@@ -6,7 +6,8 @@ exports.getEmployees = async (req, res) => {
     const employees = await User.find({ role: "employee" })
       .populate("employeeProfile")
       .populate("skill")
-      .lean(); // Convert to plain JavaScript objects
+      .populate("testScores")
+      .lean();
 
     // Use the GridFSBucket instance from your db.js module
     const gfs = getGridFS();

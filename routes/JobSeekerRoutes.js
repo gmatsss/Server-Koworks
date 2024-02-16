@@ -25,6 +25,8 @@ const {
   getAllJobs,
   createPinJob,
   unpinJob,
+  getPinJobs,
+  updatePinJobNotes,
 } = require("../controllers/JobSeekerControllers/Joblist");
 
 //testscore
@@ -43,7 +45,9 @@ router.get("/getSkill", getSkill);
 
 //joblist
 router.get("/getAllJobs", getAllJobs);
+router.get("/getPinJobs", getPinJobs);
 router.post("/createPinJob", createPinJob);
+router.post("/updatePinJobNotes", updatePinJobNotes);
 router.delete("/unpinJob/:jobId", unpinJob);
 
 module.exports = router;

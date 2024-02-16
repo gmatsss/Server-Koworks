@@ -50,6 +50,14 @@ const UserSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+
+  pinnedJobs: [
+    // Add this field to your schema
+    {
+      type: Schema.Types.ObjectId,
+      ref: "PinJob",
+    },
+  ],
 });
 
 module.exports = mongoose.model("User", UserSchema);
