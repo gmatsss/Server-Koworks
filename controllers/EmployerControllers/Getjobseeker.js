@@ -7,6 +7,7 @@ exports.getEmployees = async (req, res) => {
       .populate("employeeProfile")
       .populate("skill")
       .populate("testScores")
+      .populate("verificationStatus")
       .lean();
 
     // Use the GridFSBucket instance from your db.js module

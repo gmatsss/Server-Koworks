@@ -4,6 +4,7 @@ const PostJob = require("../../models/PostJob");
 const Pinjob = require("../../models/Pinjob");
 const BusinessProfile = require("../../models/BusinessProfileSchema");
 const { getGridFS } = require("../../db/db");
+const JobApplicationSchema = require("../../models/JobApplicationSchema");
 
 exports.createPinJob = async (req, res) => {
   try {
@@ -167,7 +168,6 @@ exports.updatePinJobNotes = async (req, res) => {
 
 exports.getAllJobs = async (req, res) => {
   try {
-    const userId = req.user._id; // Assuming req.user is populated by your authentication middleware
     const gfs = getGridFS();
 
     // Fetch all jobs with user details populated
@@ -182,11 +182,11 @@ exports.getAllJobs = async (req, res) => {
       })
       .lean();
 
-    // Check if each job is pinned by the current user and fetch business profile image
-    const jobsWithPinStatusAndImage = await Promise.all(
+    // Process jobs to include image data and pin status (if user is logged in)
+    jobs = await Promise.all(
       jobs.map(async (job) => {
-        const isPinned = await Pinjob.findOne({ user: userId, job: job._id });
         let imageData = null;
+        let isPinned = false;
 
         // Fetch business profile image if available
         if (job.user.businessProfile && job.user.businessProfile.img) {
@@ -199,9 +199,19 @@ exports.getAllJobs = async (req, res) => {
           }
         }
 
+        // Check if each job is pinned by the current user (only if user is logged in)
+        if (req.user) {
+          const userId = req.user._id; // Assuming req.user is populated by your authentication middleware
+          const pinStatus = await Pinjob.findOne({
+            user: userId,
+            job: job._id,
+          });
+          isPinned = !!pinStatus;
+        }
+
         return {
           ...job,
-          isPinned: !!isPinned,
+          isPinned, // Include pin status based on user login
           businessProfileImage: imageData, // Include the image data in the response
         };
       })
@@ -209,14 +219,33 @@ exports.getAllJobs = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      count: jobsWithPinStatusAndImage.length,
-      data: jobsWithPinStatusAndImage,
+      count: jobs.length,
+      data: jobs,
     });
   } catch (error) {
     console.log("Error fetching jobs:", error);
     res.status(500).json({
       success: false,
       message: "Server error: Unable to retrieve jobs.",
+    });
+  }
+};
+
+exports.getAllJobsForEmployers = async (req, res) => {
+  try {
+    // Fetch all jobs, but only select the jobTitle field
+    let jobs = await PostJob.find({}).select("jobTitle").lean();
+
+    res.status(200).json({
+      success: true,
+      count: jobs.length,
+      data: jobs, // Each item in this array will be a document with only the jobTitle field
+    });
+  } catch (error) {
+    console.error("Error fetching job titles for all employers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error: Unable to retrieve job titles.",
     });
   }
 };
@@ -229,3 +258,90 @@ async function streamToBase64(stream) {
     stream.on("error", reject);
   });
 }
+
+exports.applyForJob = async (req, res) => {
+  const { jobId } = req.params;
+  const userId = req.user._id;
+
+  try {
+    const existingApplication = await JobApplicationSchema.findOne({
+      job: jobId,
+      applicant: userId,
+    });
+
+    if (existingApplication) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already applied for this job.",
+      });
+    }
+
+    const application = new JobApplicationSchema({
+      job: jobId,
+      applicant: userId,
+    });
+
+    await application.save();
+
+    res
+      .status(201)
+      .json({ success: true, message: "Application submitted successfully." });
+  } catch (error) {
+    console.error("Error applying for job:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while applying for the job.",
+    });
+  }
+};
+
+exports.checkApplicationStatus = async (req, res) => {
+  const { jobId } = req.params;
+  const userId = req.user._id; // Ensure you have middleware to authenticate and identify the user
+
+  try {
+    const application = await JobApplicationSchema.findOne({
+      job: jobId,
+      applicant: userId,
+    }).exec();
+
+    if (application) {
+      return res
+        .status(200)
+        .json({ hasApplied: true, status: application.status });
+    } else {
+      return res.status(200).json({ hasApplied: false });
+    }
+  } catch (error) {
+    console.error("Error checking application status:", error);
+    return res
+      .status(500)
+      .send("An error occurred while checking the application status.");
+  }
+};
+
+exports.getUserJobApplications = async (req, res) => {
+  const userId = req.user._id; // Assuming user ID is available through req.user._id
+
+  try {
+    const applications = await JobApplicationSchema.find({ applicant: userId })
+      .populate({
+        path: "job",
+        model: "PostJob",
+        populate: {
+          path: "user",
+          model: "User",
+          populate: {
+            path: "businessProfile",
+            model: "BusinessProfile",
+          },
+        },
+      })
+      .exec();
+
+    res.json(applications);
+  } catch (error) {
+    console.error("Error fetching user's job applications:", error);
+    res.status(500).send("An error occurred while fetching job applications.");
+  }
+};

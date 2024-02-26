@@ -1,7 +1,7 @@
 const User = require("../../models/User");
 const EmployeeProfile = require("../../models/EmployeeProfile");
-const { MongoClient, GridFSBucket } = require("mongodb");
 const { getGridFS } = require("../../db/db");
+const VerificationStatusSchema = require("../../models/VerificationStatusSchema");
 
 // Controller for creating an EmployeeProfile
 exports.createEmployeeProfile = async (req, res) => {
@@ -11,7 +11,7 @@ exports.createEmployeeProfile = async (req, res) => {
     }
 
     const userId = req.user._id;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate("verificationStatus");
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -23,6 +23,25 @@ exports.createEmployeeProfile = async (req, res) => {
 
     await employeeProfile.save();
     user.employeeProfile = employeeProfile._id;
+
+    // Check if verificationStatus exists and update it
+    if (user.verificationStatus) {
+      if (!user.verificationStatus.profileCompleted) {
+        user.verificationStatus.profileCompleted = true;
+        user.verificationStatus.idScore += 10; // Increment ID score by 10
+        await user.verificationStatus.save();
+      }
+    } else {
+      // Handle case where user does not have a verificationStatus document
+      // This might involve creating a new VerificationStatus document and associating it with the user
+      const newVerificationStatus = new VerificationStatusSchema({
+        profileCompleted: true,
+        idScore: 10, // Starting ID score with 10 for completing the profile
+      });
+      await newVerificationStatus.save();
+      user.verificationStatus = newVerificationStatus._id;
+    }
+
     await user.save();
 
     res.status(201).json({

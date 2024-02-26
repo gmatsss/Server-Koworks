@@ -27,11 +27,6 @@ const UserSchema = new Schema({
     ref: "Verification",
   },
 
-  verificationScore: {
-    type: Schema.Types.ObjectId,
-    ref: "VerificationScore",
-  },
-
   businessProfile: {
     type: Schema.Types.ObjectId,
     ref: "BusinessProfile",
@@ -52,12 +47,16 @@ const UserSchema = new Schema({
   },
 
   pinnedJobs: [
-    // Add this field to your schema
     {
       type: Schema.Types.ObjectId,
       ref: "PinJob",
     },
   ],
+
+  verificationStatus: {
+    type: Schema.Types.ObjectId,
+    ref: "VerificationStatus",
+  },
 });
 
 module.exports = mongoose.model("User", UserSchema);

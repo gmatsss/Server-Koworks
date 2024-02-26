@@ -9,6 +9,7 @@ const PostJob = require("../models/PostJob");
 const Skill = require("../models/Skill");
 const EmployeeProfile = require("../models/EmployeeProfile");
 const BusinessProfileSchema = require("../models/BusinessProfileSchema");
+const VerificationStatusSchema = require("../models/VerificationStatusSchema");
 
 const saltRounds = 10;
 
@@ -121,6 +122,7 @@ exports.get_user = async (req, res) => {
         .populate("employeeProfile")
         .populate("skill")
         .populate("testScores")
+        .populate("verificationStatus")
         .exec();
     } else if (userRole === "employer") {
       user = await User.findById(userId).populate("businessProfile").exec();
@@ -309,8 +311,13 @@ exports.getUserWithDetails = async (req, res) => {
       } else if (user.role === "employee") {
         // Query for employee's skill and profile
         user.skill = await Skill.findOne({ user: user._id }).lean();
+
         user.employeeProfile = await EmployeeProfile.findOne({
           user: user._id,
+        }).lean();
+
+        user.verificationStatus = await VerificationStatusSchema.findOne({
+          _id: user.verificationStatus,
         }).lean();
 
         // Query for employee's test scores

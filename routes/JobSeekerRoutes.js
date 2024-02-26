@@ -27,6 +27,10 @@ const {
   unpinJob,
   getPinJobs,
   updatePinJobNotes,
+  getAllJobsForEmployers,
+  applyForJob,
+  checkApplicationStatus,
+  getUserJobApplications,
 } = require("../controllers/JobSeekerControllers/Joblist");
 
 //testscore
@@ -44,10 +48,14 @@ router.post("/updateSkill", updateSkill);
 router.get("/getSkill", getSkill);
 
 //joblist
+router.get("/getAllJobsForEmployers", getAllJobsForEmployers);
 router.get("/getAllJobs", getAllJobs);
 router.get("/getPinJobs", getPinJobs);
+router.get("/checkApplicationStatus/:jobId", checkApplicationStatus);
+router.get("/getUserJobApplications", getUserJobApplications);
 router.post("/createPinJob", createPinJob);
 router.post("/updatePinJobNotes", updatePinJobNotes);
+router.post("/applyForJob/:jobId", applyForJob);
 router.delete("/unpinJob/:jobId", unpinJob);
 
 module.exports = router;

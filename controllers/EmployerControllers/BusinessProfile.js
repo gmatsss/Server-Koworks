@@ -84,7 +84,7 @@ exports.updateOrCreateProfile = async (req, res) => {
     await profile.save();
 
     // Link the profile to the user
-    user.BusinessProfileSchema = profile._id;
+    user.businessProfile = profile._id;
     await user.save();
 
     res.status(200).json({
