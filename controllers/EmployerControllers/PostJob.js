@@ -1,3 +1,4 @@
+const BusinessProfileSchema = require("../../models/BusinessProfileSchema");
 const PostJob = require("../../models/PostJob"); // Update the path to your PostJob model
 const User = require("../../models/User"); // Update the path to your User model
 
@@ -11,6 +12,17 @@ exports.createPostJob = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
+    }
+
+    // Check if the employer has a BusinessProfile
+    const businessProfile = await BusinessProfileSchema.findOne({
+      user: userId,
+    });
+    if (!businessProfile) {
+      return res.status(403).json({
+        message:
+          "Employer must have a Business Profile to post a job. Please go to edit account",
+      });
     }
 
     // Extract job details from request body

@@ -21,6 +21,7 @@ const testRoutes = require("./routes/test");
 const JobSeekerRoutes = require("./routes/JobSeekerRoutes");
 const EmployerRoutes = require("./routes/EmployerRoutes");
 const UserRoutes = require("./routes/User");
+const Faker = require("./routes/Faker");
 
 // Initialize Express app
 const app = express();
@@ -71,6 +72,7 @@ app.use("/", testRoutes);
 app.use("/JobSeekerRoutes", JobSeekerRoutes);
 app.use("/EmployerRoutes", EmployerRoutes);
 app.use("/User", UserRoutes);
+app.use("/Faker", Faker);
 
 // Port configuration and starting the server
 const port = process.env.PORT || 8002;

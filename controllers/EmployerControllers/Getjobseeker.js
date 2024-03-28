@@ -1,4 +1,5 @@
 const { getGridFS } = require("../../db/db");
+const PostJob = require("../../models/PostJob");
 const User = require("../../models/User"); // Adjust the path according to your project structure
 
 exports.getEmployees = async (req, res) => {
@@ -49,6 +50,37 @@ exports.getEmployees = async (req, res) => {
     console.error("Error fetching employees:", error);
     res.status(500).json({
       message: "An error occurred while fetching employees.",
+    });
+  }
+};
+
+exports.getApplicantsDetails = async (req, res) => {
+  const { jobId } = req.body;
+
+  try {
+    const job = await PostJob.findById(jobId)
+      .populate({
+        path: "applicants",
+        select: "-password",
+        populate: [
+          { path: "employeeProfile", model: "EmployeeProfile" },
+          { path: "skill", model: "Skill" },
+          { path: "testScores", model: "TestScores" },
+          { path: "verificationStatus", model: "VerificationStatus" },
+        ],
+      })
+      .lean(); // Use lean() to return a plain JS object
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    res.json({ success: true, job: job });
+  } catch (error) {
+    console.error("Failed to fetch applicants:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching applicants.",
     });
   }
 };

@@ -264,6 +264,7 @@ exports.applyForJob = async (req, res) => {
   const userId = req.user._id;
 
   try {
+    // Check if the user has already applied for this job
     const existingApplication = await JobApplicationSchema.findOne({
       job: jobId,
       applicant: userId,
@@ -276,6 +277,7 @@ exports.applyForJob = async (req, res) => {
       });
     }
 
+    // Create a new job application
     const application = new JobApplicationSchema({
       job: jobId,
       applicant: userId,
@@ -283,6 +285,12 @@ exports.applyForJob = async (req, res) => {
 
     await application.save();
 
+    // Update the job document to add the user to the applicants array
+    await PostJob.findByIdAndUpdate(jobId, {
+      $addToSet: { applicants: userId }, // Using $addToSet to ensure the user is only added once
+    });
+
+    // Respond with success
     res
       .status(201)
       .json({ success: true, message: "Application submitted successfully." });
