@@ -15,6 +15,7 @@ const {
 const {
   getEmployees,
   getApplicantsDetails,
+  updateApplication,
 } = require("../controllers/EmployerControllers/Getjobseeker");
 
 const {
@@ -23,6 +24,10 @@ const {
   unpinEmployee,
   editPinNotes,
 } = require("../controllers/EmployerControllers/PinEmployee");
+
+const {
+  getHireApplicant,
+} = require("../controllers/EmployerControllers/Hiredapplicant");
 
 router.post("/updateOrCreateProfile", updateOrCreateProfile);
 router.get("/getUserProfileImage", getUserProfileImage);
@@ -34,10 +39,13 @@ router.delete("/deletePostJob/:jobId", deletePostJob);
 
 router.get("/getEmployees", getEmployees);
 router.post("/getApplicantsDetails", getApplicantsDetails);
+router.post("/updateApplication", updateApplication);
 
 router.post("/createPinEmployee", createPinEmployee);
 router.post("/editPinNotes", editPinNotes);
 router.get("/getPinnedEmployees", getPinnedEmployees);
 router.delete("/unpinEmployee", unpinEmployee);
+
+router.get("/getHireApplicant", getHireApplicant);
 
 module.exports = router;

@@ -26,6 +26,7 @@ const SkillSchema = new Schema({
   marketingAndSales: [SkillRatingSchema],
   professionalServices: [SkillRatingSchema],
   projectManagement: [SkillRatingSchema],
+  other: [SkillRatingSchema],
 });
 
 module.exports = mongoose.model("Skill", SkillSchema);

@@ -17,32 +17,44 @@ exports.createSkill = async (req, res) => {
     }
 
     const skillsData = req.body;
+    const formattedSkillsData = {};
+
     for (let category in skillsData) {
-      const skillsArray = [];
-      for (let skillName in skillsData[category]) {
-        skillsArray.push({
-          name: skillName,
-          rating: skillsData[category][skillName],
-        });
+      if (category !== "other") {
+        const skillsArray = [];
+        for (let skillName in skillsData[category]) {
+          skillsArray.push({
+            name: skillName,
+            rating: skillsData[category][skillName],
+          });
+        }
+        formattedSkillsData[category] = skillsArray;
       }
-      skillsData[category] = skillsArray;
+    }
+
+    if (skillsData.other) {
+      formattedSkillsData.other = skillsData.other.map((skill) => ({
+        name: skill.name,
+        rating: skill.value,
+      }));
     }
 
     if (user.skill) {
-      // Update the existing Skill document
-      await Skill.findByIdAndUpdate(user.skill, {
-        ...skillsData,
-        user: user._id,
-      });
+      await Skill.findByIdAndUpdate(
+        user.skill,
+        { ...formattedSkillsData, user: user._id },
+        { new: true }
+      );
     } else {
-      // Create a new Skill document
-      const skill = new Skill({
-        ...skillsData,
-        user: user._id,
-      });
-
-      await skill.save();
-      user.skill = skill._id;
+      const skill = new Skill({ ...formattedSkillsData, user: user._id });
+      try {
+        await skill.save();
+        user.skill = skill._id;
+        await user.save();
+      } catch (error) {
+        console.error("Saving skill error:", error);
+        // Handle error
+      }
     }
 
     // Check if user has a VerificationStatus, create if not
@@ -70,9 +82,10 @@ exports.createSkill = async (req, res) => {
       message: "Skill created successfully.",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error detail:", error.message); // Provides more specific error detail
     res.status(500).json({
       message: "An error occurred while creating the skill.",
+      error: error.message, // Optionally send back error details to the client for debugging
     });
   }
 };

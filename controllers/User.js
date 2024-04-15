@@ -292,7 +292,7 @@ exports.getUserWithDetails = async (req, res) => {
           user: user._id,
         }).lean();
 
-        // Check if imgId exists before attempting to fetch the image
+        // Fetching and converting employer profile image to base64
         if (user.businessProfile && user.businessProfile.img) {
           try {
             const imgId = user.businessProfile.img;
@@ -305,25 +305,34 @@ exports.getUserWithDetails = async (req, res) => {
               user.businessProfile.img,
               imgError
             );
-            // Handle missing image or other errors, e.g., by setting a default image or leaving imageData undefined
           }
         }
       } else if (user.role === "employee") {
-        // Query for employee's skill and profile
-        user.skill = await Skill.findOne({ user: user._id }).lean();
-
         user.employeeProfile = await EmployeeProfile.findOne({
           user: user._id,
         }).lean();
 
+        user.skill = await Skill.findOne({ user: user._id }).lean();
         user.verificationStatus = await VerificationStatusSchema.findOne({
           _id: user.verificationStatus,
         }).lean();
+        user.testScores = await TestScores.findOne({ user: user._id }).lean();
 
-        // Query for employee's test scores
-        user.testScores = await TestScores.findOne({
-          user: user._id,
-        }).lean();
+        // Fetching and converting employee profile image to base64
+        if (user.employeeProfile && user.employeeProfile.img) {
+          try {
+            const imgId = user.employeeProfile.img;
+            user.employeeProfile.imageData = await streamToBase64(
+              gfs.openDownloadStream(imgId)
+            );
+          } catch (imgError) {
+            console.error(
+              "Error fetching employee image with ID:",
+              user.employeeProfile.img,
+              imgError
+            );
+          }
+        }
       }
     }
 

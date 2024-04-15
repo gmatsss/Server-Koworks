@@ -17,6 +17,9 @@ const JobApplicationSchema = new Schema({
     enum: ["applied", "interview", "hired", "rejected"],
     default: "applied",
   },
+  Employerfeedback: {
+    type: String,
+  },
   appliedAt: {
     type: Date,
     default: Date.now,

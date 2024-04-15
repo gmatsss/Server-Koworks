@@ -1,6 +1,8 @@
 const { getGridFS } = require("../../db/db");
+const HiredApplicant = require("../../models/HiredApplicant");
+const JobApplicationSchema = require("../../models/JobApplicationSchema");
 const PostJob = require("../../models/PostJob");
-const User = require("../../models/User"); // Adjust the path according to your project structure
+const User = require("../../models/User");
 
 exports.getEmployees = async (req, res) => {
   try {
@@ -56,6 +58,7 @@ exports.getEmployees = async (req, res) => {
 
 exports.getApplicantsDetails = async (req, res) => {
   const { jobId } = req.body;
+  const gfs = getGridFS();
 
   try {
     const job = await PostJob.findById(jobId)
@@ -69,13 +72,49 @@ exports.getApplicantsDetails = async (req, res) => {
           { path: "verificationStatus", model: "VerificationStatus" },
         ],
       })
-      .lean(); // Use lean() to return a plain JS object
+      .lean();
 
     if (!job) {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
 
-    res.json({ success: true, job: job });
+    // Fetch application status and convert images to base64 for each applicant
+    const applicantsDetailsPromises = job.applicants.map(async (applicant) => {
+      const application = await JobApplicationSchema.findOne({
+        job: jobId,
+        applicant: applicant._id,
+      }).lean();
+
+      // Check if imgId exists and fetch image data
+      if (applicant.employeeProfile && applicant.employeeProfile.img) {
+        try {
+          const imgId = applicant.employeeProfile.img;
+          // Convert the image to base64
+          applicant.employeeProfile.imageData = await streamToBase64(
+            gfs.openDownloadStream(imgId)
+          );
+        } catch (imgError) {
+          console.error(
+            "Error fetching image with ID:",
+            applicant.employeeProfile.img,
+            imgError
+          );
+        }
+      }
+
+      return {
+        ...applicant,
+        applicationStatus: application ? application.status : "Not Applied",
+      };
+    });
+
+    // Await all the promises to resolve
+    const applicantsWithDetails = await Promise.all(applicantsDetailsPromises);
+
+    res.json({
+      success: true,
+      job: { ...job, applicants: applicantsWithDetails },
+    });
   } catch (error) {
     console.error("Failed to fetch applicants:", error);
     res.status(500).json({
@@ -84,3 +123,55 @@ exports.getApplicantsDetails = async (req, res) => {
     });
   }
 };
+
+exports.updateApplication = async (req, res) => {
+  const { jobId, applicantId, status, notes } = req.body; // Include notes in the destructured request body
+
+  try {
+    const application = await JobApplicationSchema.findOneAndUpdate(
+      { job: jobId, applicant: applicantId },
+      {
+        status: status,
+        Employerfeedback: notes,
+      },
+      { new: true }
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    if (status === "hired") {
+      // Check if a hired record already exists, update it if it does, or create a new one if it doesn't
+      const updateData = {
+        job: application.job,
+        applicant: application.applicant,
+        feedback: notes,
+        hiredAt: new Date(), // Consider if you want to update this field on each modification
+      };
+
+      const newHire = await HiredApplicant.findOneAndUpdate(
+        { job: application.job, applicant: application.applicant },
+        updateData,
+        { new: true, upsert: true } // Upsert option will create a new document if no documents match the filter
+      );
+    }
+
+    res.json({ success: true, application });
+  } catch (error) {
+    console.error("Error updating application status:", error);
+    res.status(500).json({ message: "Failed to update application status" });
+  }
+};
+
+async function streamToBase64(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("base64")));
+    stream.on("error", (error) => {
+      console.error("Stream to base64 conversion error:", error);
+      reject(error);
+    });
+  });
+}

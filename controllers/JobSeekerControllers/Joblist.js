@@ -58,11 +58,12 @@ exports.createPinJob = async (req, res) => {
 
 exports.unpinJob = async (req, res) => {
   try {
-    const userId = req.user._id; // Assuming you have middleware to set req.user
-    const { jobId } = req.params; // Assuming the job ID is passed as a URL parameter
+    if (!req.user) {
+      return res.status(401).json({ message: "User is not authenticated." });
+    }
 
-    console.log(jobId);
-    console.log(userId);
+    const userId = req.user._id;
+    const { jobId } = req.params;
 
     // Find the pin by user and job IDs
     const pin = await Pinjob.findOneAndDelete({
@@ -260,6 +261,10 @@ async function streamToBase64(stream) {
 }
 
 exports.applyForJob = async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "User is not authenticated." });
+  }
+
   const { jobId } = req.params;
   const userId = req.user._id;
 
@@ -329,7 +334,11 @@ exports.checkApplicationStatus = async (req, res) => {
 };
 
 exports.getUserJobApplications = async (req, res) => {
-  const userId = req.user._id; // Assuming user ID is available through req.user._id
+  if (!req.user) {
+    return res.status(401).json({ message: "User is not authenticated." });
+  }
+
+  const userId = req.user._id;
 
   try {
     const applications = await JobApplicationSchema.find({ applicant: userId })
