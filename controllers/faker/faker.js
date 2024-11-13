@@ -54,13 +54,12 @@ const generateRandomSkills = () => {
   const skills = {};
 
   Object.entries(skillsCategories).forEach(([category, skillsList]) => {
-    // Randomly select 1 to all skills in each category
     const selectedSkills = skillsList
       .sort(() => 0.5 - Math.random())
       .slice(0, faker.number.int({ min: 1, max: skillsList.length }));
     skills[category] = selectedSkills.map((skill) => ({
       name: skill,
-      rating: faker.number.int({ min: 1, max: 5 }), // Random rating between 1 and 5
+      rating: faker.number.int({ min: 1, max: 5 }),
     }));
   });
 
@@ -73,11 +72,11 @@ const generateRandomTestScores = () => ({
     influence_score: faker.number.int({ min: 0, max: 100 }),
     steadiness_score: faker.number.int({ min: 0, max: 100 }),
     compliance_score: faker.number.int({ min: 0, max: 100 }),
-    disc_img: null, // Assuming no image is generated
+    disc_img: null,
   },
   iq: {
     iq_score: faker.number.int({ min: 0, max: 160 }),
-    iq_img: null, // Assuming no image is generated
+    iq_img: null,
   },
   english: {
     english_score: faker.helpers.arrayElement([
@@ -88,7 +87,7 @@ const generateRandomTestScores = () => ({
       "C1",
       "C2",
     ]),
-    english_img: null, // Assuming no image is generated
+    english_img: null,
   },
 });
 
@@ -109,15 +108,14 @@ exports.createDummyEmployees = async (req, res) => {
         pinnedJobs: [],
       }).save();
 
-      // Now that we have the user ID, create related models with user field included
       const skills = await new Skill({
         ...generateRandomSkills(),
-        user: user._id, // Assign the user ID
+        user: user._id,
       }).save();
 
       const testScores = await new TestScores({
         ...generateRandomTestScores(),
-        user: user._id, // Assign the user ID
+        user: user._id,
       }).save();
 
       const employeeProfile = await new EmployeeProfile({
@@ -149,7 +147,6 @@ exports.createDummyEmployees = async (req, res) => {
         user: user._id,
       }).save();
 
-      // Update the user with related model IDs
       user.employeeProfile = employeeProfile._id;
       user.skill = skills._id;
       user.testScores = testScores._id;
@@ -165,7 +162,6 @@ exports.createDummyEmployees = async (req, res) => {
       users: createdUsers,
     });
   } catch (error) {
-    console.error("Error creating dummy employees:", error);
     res
       .status(500)
       .json({ success: false, message: "Failed to create dummy employees." });

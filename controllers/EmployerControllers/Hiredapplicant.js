@@ -20,7 +20,7 @@ exports.getHireApplicant = async (req, res) => {
       .populate({
         path: "applicant",
         model: "User",
-        select: "fullname email role lastLogin", // Selecting specific fields for efficiency
+        select: "fullname email role lastLogin",
         populate: [
           { path: "employeeProfile", model: "EmployeeProfile" },
           { path: "skill", model: "Skill" },

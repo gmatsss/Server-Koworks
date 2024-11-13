@@ -2,8 +2,6 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const passport = require("passport");
 const TestScores = require("../models/TestScores");
-const { MongoClient, GridFSBucket } = require("mongodb");
-const { ObjectId } = require("mongodb");
 const { getGridFS } = require("../db/db");
 const PostJob = require("../models/PostJob");
 const Skill = require("../models/Skill");
@@ -15,7 +13,6 @@ const saltRounds = 10;
 
 exports.register_user = async (req, res) => {
   try {
-    // Check if user with the provided email already exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
       return res.status(400).json({
@@ -25,22 +22,19 @@ exports.register_user = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
-
     const userFields = {
       fullname: req.body.fullname,
       email: req.body.email,
       password: hashedPassword,
       role: req.body.role,
-      created: new Date().toISOString(), // Setting the created field to the current date and time
+      created: new Date().toISOString(),
     };
 
-    // Add postedJobs only if the user is an employer
     if (req.body.role === "employer") {
       userFields.postedJobs = [];
     }
 
     const newUser = new User(userFields);
-
     await newUser.save();
 
     res.status(201).json({
@@ -69,7 +63,6 @@ exports.login_user = (req, res, next) => {
         return next(err);
       }
 
-      // Update last login time
       user.lastLogin = new Date();
       await user.save();
 
@@ -92,14 +85,10 @@ exports.get_user = async (req, res) => {
   try {
     const userId = req.user._id;
     const userRole = req.user.role;
-
     let user;
     let userProfileImageData = null;
 
-    // Initialize GridFS
     const bucket = getGridFS();
-
-    // Fetch the user's profile image
     const file = await bucket.find({ filename: `profile_${userId}` }).next();
 
     if (file) {
@@ -139,11 +128,10 @@ exports.get_user = async (req, res) => {
     res.status(200).json({
       isLoggedIn: true,
       user: user,
-      profileImageData: userProfileImageData, // Sending image data directly
+      profileImageData: userProfileImageData,
       message: "User fetched successfully.",
     });
   } catch (err) {
-    console.log(err);
     res.status(500).json({
       isLoggedIn: true,
       user: null,
@@ -153,27 +141,21 @@ exports.get_user = async (req, res) => {
 };
 
 exports.logout_user = (req, res, next) => {
-  console.log("Endpoint hit:", req.originalUrl);
-
   req.logout(function (err) {
     if (err) {
-      console.error("Error during logout:", err);
       return res
         .status(500)
         .json({ message: "Logout failed. Please try again." });
     }
 
-    // Destroy the session and clear the cookie
     req.session.destroy((sessionErr) => {
       if (sessionErr) {
-        console.error("Error destroying session during logout:", sessionErr);
         return res
           .status(500)
           .json({ message: "Logout failed. Please try again." });
       }
 
       if (req.isAuthenticated()) {
-        console.error("User still authenticated after logout.");
         return res
           .status(500)
           .json({ message: "Logout failed. Please try again." });
@@ -247,7 +229,6 @@ exports.update_user = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "An error occurred while updating the user.",
       success: false,
@@ -263,9 +244,7 @@ exports.get_user_profile_image = async (req, res) => {
       useUnifiedTopology: true,
     });
     const db = conn.db();
-    const bucket = new GridFSBucket(db, {
-      bucketName: "uploads",
-    });
+    const bucket = new GridFSBucket(db, { bucketName: "uploads" });
     const file = await bucket.find({ _id: new ObjectId(fileId) }).next();
 
     if (file) {
@@ -275,7 +254,6 @@ exports.get_user_profile_image = async (req, res) => {
       res.status(404).send("Image not found");
     }
   } catch (err) {
-    console.log(err);
     res.status(500).send("Internal Server Error");
   }
 };
@@ -292,7 +270,6 @@ exports.getUserWithDetails = async (req, res) => {
           user: user._id,
         }).lean();
 
-        // Fetching and converting employer profile image to base64
         if (user.businessProfile && user.businessProfile.img) {
           try {
             const imgId = user.businessProfile.img;
@@ -318,7 +295,6 @@ exports.getUserWithDetails = async (req, res) => {
         }).lean();
         user.testScores = await TestScores.findOne({ user: user._id }).lean();
 
-        // Fetching and converting employee profile image to base64
         if (user.employeeProfile && user.employeeProfile.img) {
           try {
             const imgId = user.employeeProfile.img;
@@ -342,7 +318,6 @@ exports.getUserWithDetails = async (req, res) => {
       data: users,
     });
   } catch (error) {
-    console.error("Error fetching users with details:", error);
     res.status(500).json({
       success: false,
       message: "Server error while fetching users.",
@@ -355,9 +330,6 @@ async function streamToBase64(stream) {
     const chunks = [];
     stream.on("data", (chunk) => chunks.push(chunk));
     stream.on("end", () => resolve(Buffer.concat(chunks).toString("base64")));
-    stream.on("error", (error) => {
-      console.error("Stream to base64 conversion error:", error);
-      reject(error);
-    });
+    stream.on("error", reject);
   });
 }

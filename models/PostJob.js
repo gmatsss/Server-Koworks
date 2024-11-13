@@ -17,12 +17,12 @@ const PostJobSchema = new Schema({
   employmentType: { type: String },
   experience: { type: String },
   workingHours: { type: String },
-  jobSkills: [{ type: String }], // Array of skill labels
+  jobSkills: [{ type: String }],
   selectedCategory: { type: String },
-  applicants: [{ type: Schema.Types.ObjectId, ref: "User" }], // Array of User IDs who applied
-  hits: { type: Number, default: 0 }, // Number of times the job posting has been viewed
-  status: { type: String, default: "open" }, // Job status
-  created: { type: Date, default: Date.now }, // Date when the job was added
+  applicants: [{ type: Schema.Types.ObjectId, ref: "User" }],
+  hits: { type: Number, default: 0 },
+  status: { type: String, default: "open" },
+  created: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("PostJob", PostJobSchema);

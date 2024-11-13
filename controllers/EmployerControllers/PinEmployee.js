@@ -1,4 +1,4 @@
-const PinEmployeeSchema = require("../../models/PinEmployeeSchema"); // Adjust the path as necessary
+const PinEmployeeSchema = require("../../models/PinEmployeeSchema");
 const mongoose = require("mongoose");
 
 exports.createPinEmployee = async (req, res) => {
@@ -18,7 +18,6 @@ exports.createPinEmployee = async (req, res) => {
       pin: savedPin,
     });
   } catch (error) {
-    console.error("Failed to pin employee:", error); // Log the error for debugging
     res.status(500).json({
       message: "Failed to pin employee",
       error: error.message,
@@ -28,17 +27,15 @@ exports.createPinEmployee = async (req, res) => {
 
 exports.getPinnedEmployees = async (req, res) => {
   try {
-    const userId = req.user.id; // Assuming req.user.id contains the current user's ID
+    const userId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
-    // Adjusting to populate multiple fields from the employee reference
     const pinnedEmployees = await PinEmployeeSchema.find({ user: userId })
       .populate({
         path: "employee",
-
         populate: [
           {
             path: "employeeProfile",
@@ -47,18 +44,14 @@ exports.getPinnedEmployees = async (req, res) => {
           {
             path: "skill",
             model: "Skill",
-            // Specify fields if needed
           },
           {
             path: "testScores",
             model: "TestScores",
-            // Specify fields if needed
           },
-          // Add other paths as needed for verificationStatus, etc.
           {
             path: "verificationStatus",
             model: "VerificationStatus",
-            // Specify fields if needed
           },
         ],
       })
@@ -70,7 +63,6 @@ exports.getPinnedEmployees = async (req, res) => {
       pinnedEmployees: pinnedEmployees,
     });
   } catch (error) {
-    console.error("Failed to fetch pinned employees:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch pinned employees",
@@ -143,7 +135,6 @@ exports.editPinNotes = async (req, res) => {
       pinEmployee,
     });
   } catch (error) {
-    console.error("Error updating pin notes:", error);
     res.status(500).json({
       success: false,
       message: "Failed to update pin notes",

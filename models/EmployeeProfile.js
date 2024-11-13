@@ -41,11 +41,10 @@ const EmployeeProfileSchema = new Schema({
 
   img: {
     type: Schema.Types.ObjectId,
-    ref: "uploads.files", // Reference to the GridFS collection
+    ref: "uploads.files",
   },
 
   location: {
-    // Added location field
     roomFloorUnitOrBuildingName: {
       type: String,
     },

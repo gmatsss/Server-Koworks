@@ -12,7 +12,6 @@ async function connect() {
     });
     console.log("Connected to DB");
 
-    // Setting up GridFS after connecting to the database
     const conn = mongoose.connection;
     gfs = new GridFSBucket(conn.db, {
       bucketName: "uploads",

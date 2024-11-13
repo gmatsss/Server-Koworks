@@ -3,12 +3,12 @@ const { Schema } = mongoose;
 
 const VerificationSchema = new Schema({
   governmentId: {
-    photo: { type: String }, // This will store the path to the uploaded photo
-    selfie: { type: String }, // This will store the path to the uploaded selfie with ID
+    photo: { type: String },
+    selfie: { type: String },
     verified: { type: Boolean, default: false },
   },
   address: {
-    documentPhoto: { type: String }, // This will store the path to the uploaded document showing billing address
+    documentPhoto: { type: String },
     verified: { type: Boolean, default: false },
   },
   mobileNumber: {

@@ -34,15 +34,15 @@ const HiredApplicantSchema = new Schema({
   },
   contractStartDate: {
     type: Date,
-    default: Date.now, // Default start date could be the hiring date
+    default: Date.now,
   },
   contractEndDate: {
     type: Date,
-    default: "", // Empty string means indefinite or until further action
+    default: "",
   },
   additionalTerms: {
     type: String,
-    default: "", // Any additional contract terms
+    default: "",
   },
 });
 

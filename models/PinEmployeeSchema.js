@@ -4,23 +4,22 @@ const { Schema } = mongoose;
 const PinEmployeeSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
-    ref: "User", // The user who pins the employee
+    ref: "User",
     required: true,
   },
   employee: {
     type: Schema.Types.ObjectId,
-    ref: "User", // Assuming the 'User' model represents employees as well
+    ref: "User",
     required: true,
   },
   notes: {
     type: String,
-    required: false, // Optional field for notes about the pin
+    required: false,
   },
   created: {
     type: Date,
-    default: Date.now, // Automatically set the date when the pin is created
+    default: Date.now,
   },
-  // You can add additional fields as needed
 });
 
 module.exports = mongoose.model("PinEmployee", PinEmployeeSchema);

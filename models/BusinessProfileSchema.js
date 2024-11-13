@@ -21,7 +21,7 @@ const BusinessProfileSchema = new Schema({
   },
   img: {
     type: Schema.Types.ObjectId,
-    ref: "uploads.files", // Reference to the GridFS collection
+    ref: "uploads.files",
   },
 });
 

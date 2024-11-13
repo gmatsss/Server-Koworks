@@ -8,7 +8,7 @@ const {
   createEmployeeProfile,
   updateEmployeeProfile,
   getEmployeeProfile,
-} = require("../controllers/JobSeekerControllers/EmployeeProfileController"); // Updated the controller import
+} = require("../controllers/JobSeekerControllers/EmployeeProfileController");
 
 const {
   getTestScoresByUserId,

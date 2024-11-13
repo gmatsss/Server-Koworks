@@ -24,7 +24,6 @@ const JobApplicationSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  // Additional fields like interviewDate, notes, etc., can be added here
 });
 
 module.exports = mongoose.model("JobApplication", JobApplicationSchema);

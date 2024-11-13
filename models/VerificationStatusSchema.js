@@ -8,7 +8,7 @@ const VerificationStatusSchema = new Schema({
   idVerified: { type: Boolean, default: false },
   addressVerified: { type: Boolean, default: false },
   phoneVerified: { type: Boolean, default: false },
-  idScore: { type: Number, default: 0, min: 0, max: 100 }, // Track the ID score here
+  idScore: { type: Number, default: 0, min: 0, max: 100 },
 });
 
 module.exports = mongoose.model("VerificationStatus", VerificationStatusSchema);

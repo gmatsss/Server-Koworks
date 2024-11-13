@@ -5,7 +5,7 @@ const UserSchema = new Schema({
   fullname: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String }, // You might want to define specific roles here
+  role: { type: String },
 
   employeeProfile: {
     type: Schema.Types.ObjectId,
@@ -39,7 +39,7 @@ const UserSchema = new Schema({
     },
   ],
 
-  created: "String",
+  created: { type: String },
 
   lastLogin: {
     type: Date,

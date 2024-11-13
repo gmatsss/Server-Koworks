@@ -1,5 +1,5 @@
-const TestScores = require("../../models/TestScores"); // Update the path accordingly
-const User = require("../../models/User"); // Update the path accordingly+
+const TestScores = require("../../models/TestScores");
+const User = require("../../models/User");
 const { getGridFS } = require("../../db/db");
 
 exports.updateTestScores = async (req, res) => {
@@ -33,20 +33,17 @@ exports.updateTestScores = async (req, res) => {
         uploadStream.end();
 
         uploadStream.on("finish", (file) => {
-          console.log(`File uploaded: ${file._id}`);
-          resolve(file._id); // Return the file ID from GridFS
+          resolve(file._id);
         });
         uploadStream.on("error", reject);
       });
     };
 
-    // Check if there are files to process
     if (req.files && Object.keys(req.files).length > 0) {
       const fileKeys = Object.keys(req.files);
       for (let key of fileKeys) {
         const fileId = await uploadFile(req.files[key], key);
 
-        // Determine the category and field name based on the key
         if (key === "disc_img") {
           testScores.disc.disc_img = fileId;
         } else if (key === "iq_img") {
@@ -57,7 +54,6 @@ exports.updateTestScores = async (req, res) => {
       }
     }
 
-    // Update the non-file fields
     for (let key in req.body) {
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
         const [category, subfield] = key.split(".");
@@ -80,17 +76,15 @@ exports.updateTestScores = async (req, res) => {
       data: testScores,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "An error occurred while updating the test scores.",
     });
   }
 };
 
-// Controller to get TestScores by user ID
 exports.getTestScoresByUserId = async (req, res) => {
   try {
-    const userId = req.user._id; // Assuming you have user ID from session or JWT
+    const userId = req.user._id;
 
     const testScores = await TestScores.findOne({ user: userId });
 
@@ -105,7 +99,6 @@ exports.getTestScoresByUserId = async (req, res) => {
       data: testScores,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "An error occurred while fetching the test scores.",
     });

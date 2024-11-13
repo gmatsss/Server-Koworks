@@ -9,7 +9,7 @@ const {
   update_user,
   get_user_profile_image,
   getUserWithDetails,
-} = require("../controllers/User"); // Updated the controller import
+} = require("../controllers/User");
 
 router.post("/register", register_user);
 router.post("/login", login_user);
