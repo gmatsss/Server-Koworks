@@ -21,33 +21,62 @@ exports.updateOrCreateProfile = async (req, res) => {
 
     if (!profile) {
       profile = new BusinessProfileSchema({ user: userId });
+      console.log("✅ Created new profile for user:", userId);
+    } else {
+      console.log("✅ Found existing profile for user:", userId);
     }
 
     const {
       businessName,
       contactName,
       address,
-      selectedCountry,
+      country,
       zipCode,
       phone,
-      selectedTimezone,
-      selectedCurrency,
+      timezone,
+      currency,
       website,
       gender,
       city,
+      fullName,
     } = req.body;
+
+    console.log("📝 Received data:", req.body);
+    console.log("🔍 Extracted values:", {
+      country,
+      timezone,
+      currency,
+      city,
+    });
 
     if (businessName) profile.businessName = businessName;
     if (contactName) profile.contactName = contactName;
     if (address) profile.address = address;
-    if (selectedCountry) profile.selectedCountry = selectedCountry;
+    if (country) {
+      profile.selectedCountry = country;
+      console.log("✅ Set selectedCountry to:", country);
+    }
     if (zipCode) profile.zipCode = zipCode;
     if (phone) profile.phone = phone;
-    if (selectedTimezone) profile.selectedTimezone = selectedTimezone;
-    if (selectedCurrency) profile.selectedCurrency = selectedCurrency;
+    if (timezone) {
+      profile.selectedTimezone = timezone;
+      console.log("✅ Set selectedTimezone to:", timezone);
+    }
+    if (currency) {
+      profile.selectedCurrency = currency;
+      console.log("✅ Set selectedCurrency to:", currency);
+    }
     if (website) profile.website = website;
     if (gender) profile.gender = gender;
-    if (city) profile.city = city;
+    if (city) {
+      profile.city = city;
+      console.log("✅ Set city to:", city);
+    }
+
+    if (fullName) {
+      user.fullname = fullName;
+      console.log("✅ Set user fullname to:", fullName);
+    }
 
     if (uploadedFile) {
       const bucket = getGridFS();
@@ -74,19 +103,33 @@ exports.updateOrCreateProfile = async (req, res) => {
       });
     }
 
+    console.log("💾 Saving user...");
+    await user.save();
+    console.log("✅ User saved successfully");
+
+    console.log("💾 Saving profile with data:", {
+      selectedCountry: profile.selectedCountry,
+      selectedTimezone: profile.selectedTimezone,
+      selectedCurrency: profile.selectedCurrency,
+      city: profile.city,
+    });
     await profile.save();
+    console.log("✅ Profile saved successfully");
 
     user.businessProfile = profile._id;
     await user.save();
+    console.log("✅ Profile linked to user");
 
     res.status(200).json({
       message: "Business profile updated successfully.",
       data: profile,
     });
   } catch (error) {
+    console.error("❌ Profile update error:", error);
     res.status(500).json({
       message:
         "An error occurred while updating or creating the business profile.",
+      error: error.message, // ✅ Include error details for debugging
     });
   }
 };

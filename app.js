@@ -35,7 +35,12 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // CORS configuration
 const corsOptions = {
-  origin: ["http://localhost:8000", "https://koworks.customadesign.info"],
+  origin: [
+    "http://localhost:8000",
+    "https://koworks.customadesign.info",
+    "http://localhost:3000",
+    "http://localhost:5173",
+  ],
   methods: "GET,POST,DELETE",
   credentials: true,
   optionsSuccessStatus: 204,
