@@ -29,10 +29,6 @@ exports.getHireApplicant = async (req, res) => {
         ],
       });
 
-    if (hiredApplicants.length === 0) {
-      return res.status(404).json({ message: "No hired applicants found." });
-    }
-
     res.json({
       success: true,
       count: hiredApplicants.length,
